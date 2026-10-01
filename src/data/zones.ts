@@ -73,7 +73,7 @@ export const ZONES: Record<ZoneId, ZoneDef> = {
     id: 'campus',
     number: '05',
     label: 'Campus',
-    hint: 'Education',
+    hint: 'Degrees & certs',
     color: '#b57bff',
     center: [-25, 1.5, 28],
     halfExtents: [13, 3, 11],

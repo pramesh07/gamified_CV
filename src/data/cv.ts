@@ -1,5 +1,5 @@
 import { yearsSince } from './format'
-import type { Education, Profile, Project, Role, SkillGroup } from './types'
+import type { Certification, Education, Profile, Project, Role, SkillGroup } from './types'
 
 const CAREER_START = '2017-05'
 export const YEARS_OF_EXPERIENCE = yearsSince(CAREER_START)
@@ -7,17 +7,20 @@ export const YEARS_OF_EXPERIENCE = yearsSince(CAREER_START)
 export const profile: Profile = {
   name: 'Pramesh Karmacharya',
   initials: 'PK',
-  title: 'Senior Software Engineer',
+  title: 'Lead Engineer',
   tagline: 'Full Stack & GenAI Engineer',
   location: 'Bhaktapur, Nepal',
-  email: 'pmshzk@gmail.com',
-  // TODO: fill in real profile URLs — empty strings hide the links.
-  links: { linkedin: '', github: '' },
+  email: 'prmshzk@gmail.com',
+  links: {
+    portfolio: 'https://www.prameshk.com.np',
+    linkedin: 'https://www.linkedin.com/in/pramesh-karmacharya-349227110',
+    github: 'https://github.com/pramesh07',
+  },
   resumePdf: 'resume-pramesh.pdf',
   careerStart: CAREER_START,
   summary: [
-    `Full Stack Developer with ${YEARS_OF_EXPERIENCE}+ years of experience in designing and delivering dynamic, scalable, and high-performance web applications. Skilled in Node.js, Go, Python, PHP, React, and GenAI technologies, with a proven ability to architect and integrate robust backend systems, intelligent AI-driven solutions, and intuitive frontends for seamless user experiences.`,
-    'I leverage modern AI frameworks and large language models (LLMs) to build adaptive, user-centric applications that combine innovation with practical functionality. Beyond technical expertise, I bring strong collaboration, problem-solving, and communication skills that enhance team efficiency and project success.',
+    `I build AI-powered products and the scalable backend systems behind them. Full-stack engineer with a GenAI focus and ${YEARS_OF_EXPERIENCE}+ years of designing and delivering dynamic, scalable, high-performance web applications across Node.js, Go, Python, PHP and React.`,
+    'Currently focused on RAG chatbots with conversational memory, MCP tooling and AI agents on AWS Bedrock. Beyond technical expertise, I bring strong collaboration, problem-solving, and communication skills that enhance team efficiency and project success.',
     'A commitment to continuous learning and innovation ensures I stay ahead of emerging technologies, making me a versatile and forward-thinking contributor to any project or team.',
   ],
 }
@@ -27,29 +30,34 @@ export const skillGroups: SkillGroup[] = [
     id: 'languages',
     label: 'Languages',
     color: '#ff8a4c',
-    items: ['Go', 'JavaScript', 'TypeScript', 'Node.js', 'Python', 'PHP', 'HTML5', 'CSS3'],
+    items: ['Go', 'TypeScript', 'JavaScript', 'Python', 'PHP', 'HTML5', 'CSS3'],
   },
   {
     id: 'frameworks',
     label: 'Frameworks & Libraries',
     color: '#5b8cff',
     items: [
+      'Node.js',
       'Express',
       'NestJS',
-      'Laravel',
-      'React',
       'Next.js',
+      'React',
       'Zustand',
       'Tailwind',
+      'Laravel',
+      'FastAPI',
       'GoFiber',
       'Chi',
       'Gin',
       'HTMX',
       'Templ',
-      'FastAPI',
-      'RAG',
-      'MCP',
     ],
+  },
+  {
+    id: 'genai',
+    label: 'GenAI',
+    color: '#2ec4b6',
+    items: ['RAG', 'MCP', 'AWS Bedrock', 'AWS Strands', 'Qdrant', 'Mem0'],
   },
   {
     id: 'databases',
@@ -61,13 +69,13 @@ export const skillGroups: SkillGroup[] = [
     id: 'aws',
     label: 'AWS',
     color: '#f7b731',
-    items: ['EC2', 'S3', 'RDS', 'CloudWatch', 'Lambda', 'X-Ray', 'ECS', 'API Gateway', 'ECR', 'Bedrock', 'OpenSearch'],
+    items: ['EC2', 'S3', 'RDS', 'Lambda', 'ECS', 'ECR', 'API Gateway', 'CloudWatch', 'X-Ray', 'OpenSearch'],
   },
   {
     id: 'tools',
-    label: 'DevOps & Collaboration',
+    label: 'Tools & Practices',
     color: '#b57bff',
-    items: ['Git', 'GitHub', 'GitLab', 'Docker', 'Jira', 'Slack', 'Scrum'],
+    items: ['Docker', 'Git', 'GitHub', 'GitLab', 'Jira', 'Slack', 'Scrum'],
   },
 ]
 
@@ -110,12 +118,15 @@ export const roles: Role[] = [
   },
   {
     company: 'Leapfrog Technology',
-    title: 'Senior Software Engineer',
+    title: 'Lead Engineer',
     start: '2025-05',
     end: null,
     location: 'Charkhal, Kathmandu',
     color: '#ff8a4c',
     highlights: [
+      'Promoted to Lead Engineer in Jul 2026, after joining as Senior Software Engineer (May 2025 – Jun 2026).',
+      'Drive the AI SDLC framework for company-wide adoption.',
+      'Delivered a 3x productivity boost on projects, measured by story point throughput.',
       'Directed project architecture and technical strategy, mentoring junior developers and enforcing best practices in scalability, performance, and maintainability.',
       'Designed and implemented backend systems using Python, Node.js, and Go, and frontends with Next.js; delivered high-quality APIs integrated with DynamoDB and DocumentDB.',
       'Led the development of RAG-based chatbots with conversational memory and spearheaded a Presales AI Agent leveraging AWS Strands.',
@@ -142,9 +153,20 @@ export const education: Education[] = [
     institution: 'Lincoln University',
     degree: 'Master of Business Administration (MBA)',
     college: 'IIMS College',
-    date: 'Expected Sep 2027',
+    date: 'Expected Mar 2027',
     status: 'in-progress',
     location: 'Gairidhara, Kathmandu',
+  },
+]
+
+export const certifications: Certification[] = [
+  {
+    name: 'AWS Certified Solutions Architect – Associate',
+    issuer: 'Amazon Web Services',
+    issued: 'Jan 2026',
+    validUntil: 'Jan 2029',
+    url: 'https://www.credly.com/badges/540b581b-f43b-4962-935e-d612005c8099',
+    sign: ['AWS Certified', 'Solutions Architect – Associate'],
   },
 ]
 

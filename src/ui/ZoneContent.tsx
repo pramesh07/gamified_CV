@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { education, profile, projects, roles, skillGroups, YEARS_OF_EXPERIENCE } from '../data/cv'
+import { certifications, education, profile, projects, roles, skillGroups, YEARS_OF_EXPERIENCE } from '../data/cv'
 import { formatRange } from '../data/format'
 import { useGame } from '../store/useGame'
 
@@ -39,6 +39,11 @@ export function SpawnContent() {
       </dl>
       {profile.summary.map((p) => (
         <p key={p.slice(0, 24)}>{p}</p>
+      ))}
+      {certifications.map((c) => (
+        <p key={c.name} className="muted">
+          <strong>Certification:</strong> {c.name}
+        </p>
       ))}
       <p className="note">Follow the dirt paths, or use Travel, to reach every zone.</p>
     </>
@@ -170,18 +175,39 @@ export function ProjectsContent() {
 export function CampusContent() {
   return (
     <>
-      {education.map((e) => (
-        <article key={e.institution} className="card">
-          <span className={`badge badge--${e.status}`}>{e.status === 'completed' ? 'Completed' : 'In progress'}</span>
-          <h3 className="role__title">{e.degree}</h3>
-          <p className="meta">
-            <strong>{e.institution}</strong> · {e.college}
-          </p>
-          <p className="muted">
-            {e.date} · {e.location}
-          </p>
-        </article>
-      ))}
+      <section className="group">
+        <h3 style={tint('#b57bff')}>Education</h3>
+        {education.map((e) => (
+          <article key={e.institution} className="card">
+            <span className={`badge badge--${e.status}`}>{e.status === 'completed' ? 'Completed' : 'In progress'}</span>
+            <h3 className="role__title">{e.degree}</h3>
+            <p className="meta">
+              <strong>{e.institution}</strong> · {e.college}
+            </p>
+            <p className="muted">
+              {e.date} · {e.location}
+            </p>
+          </article>
+        ))}
+      </section>
+      <section className="group">
+        <h3 style={tint('#f7b731')}>Certifications</h3>
+        {certifications.map((c) => (
+          <article key={c.name} className="card">
+            <span className="badge badge--completed">Certified</span>
+            <h3 className="role__title">{c.name}</h3>
+            <p className="meta">
+              <strong>{c.issuer}</strong> · Issued {c.issued}
+            </p>
+            <p className="muted">
+              Valid until {c.validUntil} ·{' '}
+              <a href={c.url} target="_blank" rel="noreferrer">
+                Verify on Credly
+              </a>
+            </p>
+          </article>
+        ))}
+      </section>
     </>
   )
 }
@@ -198,6 +224,7 @@ export function ContactContent() {
     }
   }
   const links = [
+    { label: 'Portfolio', href: profile.links.portfolio },
     { label: 'LinkedIn', href: profile.links.linkedin },
     { label: 'GitHub', href: profile.links.github },
   ].filter((l) => l.href)

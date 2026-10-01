@@ -10,7 +10,7 @@ export interface Profile {
   tagline: string
   location: string
   email: string
-  links: { linkedin: string; github: string }
+  links: { portfolio: string; linkedin: string; github: string }
   resumePdf: string
   careerStart: YearMonth
   summary: string[]
@@ -40,6 +40,16 @@ export interface Education {
   date: string
   status: 'completed' | 'in-progress'
   location: string
+}
+
+export interface Certification {
+  name: string
+  issuer: string
+  issued: string
+  validUntil: string
+  url: string
+  /** Short title and subtitle for the 3D signboard on the campus. */
+  sign: [string, string]
 }
 
 export interface Project {

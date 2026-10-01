@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { initAudio, useSound } from '../audio/sound'
 import { useGame } from '../store/useGame'
 import { ControlsHint } from '../ui/ControlsHint'
 import { HUD } from '../ui/HUD'
@@ -10,7 +11,7 @@ import { GameCanvas } from './GameCanvas'
 
 const NAV_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
 
-/** Global keys: Esc closes the panel, ←/→ step the tour, and driving keys never scroll the page. */
+/** Global keys: Esc closes the panel, M mutes, ←/→ step the tour, and driving keys never scroll the page. */
 function useGlobalKeys() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -20,6 +21,7 @@ function useGlobalKeys() {
       if (target.closest('input, textarea, select, [contenteditable="true"]')) return
 
       if (e.key === 'Escape') s.setPanelOpen(false)
+      if ((e.key === 'm' || e.key === 'M') && !e.repeat) useSound.getState().toggleMuted()
       if (NAV_KEYS.includes(e.key)) e.preventDefault()
       // Space is the brake while driving; don't let it also press a focused HUD button.
       if (e.key === ' ' && (s.mode === 'drive' || !target.closest('button, a'))) e.preventDefault()
@@ -37,6 +39,7 @@ function useGlobalKeys() {
 /** Everything that needs three.js lives behind this lazy-loaded entry. */
 export default function Game() {
   useGlobalKeys()
+  useEffect(initAudio, [])
   return (
     <>
       <GameCanvas />

@@ -6,6 +6,7 @@ import { MathUtils, type Group, type MeshStandardMaterial } from 'three'
 import { WATER_LEVEL, ZONES } from '../data/zones'
 import type { ZoneId } from '../data/types'
 import { joystick } from '../store/input'
+import { sfx, updateEngine } from '../audio/sound'
 import { useGame } from '../store/useGame'
 import type { Controls } from './controls/keymap'
 import { car, FONT_BOLD } from './refs'
@@ -74,6 +75,7 @@ export function Vehicle() {
 
     if (t.y < WATER_LEVEL - 0.7) {
       place('spawn')
+      sfx.splash()
       showToast('Splash! Back to the start line.')
       return
     }
@@ -113,6 +115,7 @@ export function Vehicle() {
     car.position.set(t.x, t.y, t.z)
     car.yaw = yaw
     car.speed = speed
+    updateEngine(speed / MAX_FORWARD, canDrive)
 
     // Cosmetics: wheel spin, front-wheel steering, body roll, brake lights.
     wheelSpin.current -= (speed * delta) / WHEEL_RADIUS

@@ -3,10 +3,11 @@ import { useFrame } from '@react-three/fiber'
 import { Float, Text } from '@react-three/drei'
 import { CuboidCollider } from '@react-three/rapier'
 import type { Group } from 'three'
-import { education } from '../../data/cv'
+import { certifications, education } from '../../data/cv'
 import { ZONES } from '../../data/zones'
 import { FONT_BOLD, FONT_MEDIUM } from '../refs'
 import { faceToward } from '../util'
+import { Sign } from './Zone'
 
 const [bsc, mba] = education
 const ENTRY: [number, number] = [ZONES.campus.spawn.position[0], ZONES.campus.spawn.position[2]]
@@ -171,6 +172,23 @@ function ConstructionSite({ animate }: { animate: boolean }) {
   )
 }
 
+const CERT_SPOT: [number, number] = [-29, 21]
+
+/** Signboard on the plaza for each certification, facing the campus entrance. */
+function CertificationSign() {
+  return certifications.map((c, i) => (
+    <Sign
+      key={c.name}
+      position={[CERT_SPOT[0] - i * 5, 0, CERT_SPOT[1]]}
+      rotationY={faceToward(CERT_SPOT, ENTRY)}
+      width={5.2}
+      color="#f7b731"
+      title={c.sign[0].toUpperCase()}
+      subtitle={`${c.sign[1]} · ${c.issued}`}
+    />
+  ))
+}
+
 export function Campus({ animate }: { animate: boolean }) {
   return (
     <group>
@@ -180,6 +198,7 @@ export function Campus({ animate }: { animate: boolean }) {
       </mesh>
       <University animate={animate} />
       <ConstructionSite animate={animate} />
+      <CertificationSign />
     </group>
   )
 }

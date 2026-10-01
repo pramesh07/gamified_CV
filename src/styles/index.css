@@ -124,6 +124,10 @@ button {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.hud-btn--icon {
+  padding: 10px 12px;
+}
+
 .hud-btn--accent {
   background: var(--accent);
   color: var(--ink);
@@ -531,7 +535,7 @@ kbd {
   margin-bottom: 16px;
 }
 
-.group h3 {
+.group > h3 {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -539,7 +543,7 @@ kbd {
   font-size: 14px;
 }
 
-.group h3::before {
+.group > h3::before {
   content: '';
   width: 10px;
   height: 10px;

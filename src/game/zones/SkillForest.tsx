@@ -15,8 +15,9 @@ const STACK_SPOTS: Record<string, [number, number]> = {
   languages: [-27, -15],
   frameworks: [-27, -5],
   aws: [-27, 4.5],
-  databases: [-38, -11],
-  tools: [-38, 0],
+  genai: [-38, -15],
+  databases: [-38, -5],
+  tools: [-38, 4.5],
 }
 
 interface Crate {

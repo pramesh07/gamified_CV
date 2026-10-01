@@ -1,9 +1,10 @@
-import { education, profile, projects, roles, skillGroups } from '../data/cv'
+import { certifications, education, profile, projects, roles, skillGroups } from '../data/cv'
 import { formatRange } from '../data/format'
 
 /** Last resort for browsers without WebGL2: the same CV data as plain, readable HTML. */
 export function NoWebGLFallback() {
   const links = [
+    { label: 'Portfolio', href: profile.links.portfolio },
     { label: 'LinkedIn', href: profile.links.linkedin },
     { label: 'GitHub', href: profile.links.github },
   ].filter((l) => l.href)
@@ -80,10 +81,18 @@ export function NoWebGLFallback() {
       </section>
 
       <section>
-        <h2>Education</h2>
+        <h2>Education &amp; certifications</h2>
         {education.map((e) => (
           <p key={e.institution}>
             <strong>{e.degree}</strong>, {e.institution} ({e.college}) · {e.date}
+          </p>
+        ))}
+        {certifications.map((c) => (
+          <p key={c.name}>
+            <strong>{c.name}</strong>, {c.issuer} · {c.issued} ·{' '}
+            <a href={c.url} target="_blank" rel="noreferrer">
+              Verify
+            </a>
           </p>
         ))}
       </section>

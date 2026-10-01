@@ -17,7 +17,7 @@ const CONTENT: Record<ZoneId, { title: string; body: ComponentType }> = {
   skills: { title: 'Technical skills', body: SkillsContent },
   career: { title: 'Professional experience', body: CareerContent },
   projects: { title: 'Major projects', body: ProjectsContent },
-  campus: { title: 'Education', body: CampusContent },
+  campus: { title: 'Education & certifications', body: CampusContent },
   contact: { title: 'Get in touch', body: ContactContent },
 }
 

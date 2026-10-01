@@ -41,6 +41,9 @@ export function ControlsHint() {
               <span>
                 <kbd>R</kbd> reset
               </span>
+              <span>
+                <kbd>M</kbd> mute
+              </span>
             </>
           )}
         </motion.div>
