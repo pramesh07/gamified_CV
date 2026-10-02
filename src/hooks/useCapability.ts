@@ -24,3 +24,5 @@ function useMediaQuery(query: string) {
 
 export const useReducedMotion = () => useMediaQuery('(prefers-reduced-motion: reduce)')
 export const useCoarsePointer = () => useMediaQuery('(pointer: coarse)')
+/** Phones in either orientation; keep in sync with the "Compact layout" media queries in index.css. */
+export const useCompactLayout = () => useMediaQuery('(max-width: 760px), (max-height: 500px) and (orientation: landscape)')

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Text, useKeyboardControls } from '@react-three/drei'
 import { CuboidCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
-import { MathUtils, type Group, type MeshStandardMaterial } from 'three'
+import { ExtrudeGeometry, MathUtils, MeshStandardMaterial, Shape, type Group } from 'three'
 import { WATER_LEVEL, ZONES } from '../data/zones'
 import type { ZoneId } from '../data/types'
 import { joystick } from '../store/input'
@@ -20,12 +20,126 @@ const TURN_RATE = 2.3
 const WHEEL_RADIUS = 0.42
 
 const BODY_COLOR = '#ff8a4c'
+const TRIM_COLOR = '#1c2a3a'
+const STRIPE_COLOR = '#fff4e6'
+const BODY_WIDTH = 1.7
+const BODY_BEVEL = 0.05
+const WHEEL_ARCH = 0.47
+
+type Point = [z: number, y: number]
+
+// Side profile of the body, front (-z) to rear (+z): nose, hood, windshield, roof, rear glass, trunk.
+const NOSE: [Point, Point] = [
+  [-1.56, 0.28],
+  [-1.44, 0.54],
+]
+const WINDSHIELD: [Point, Point] = [
+  [-0.52, 0.62],
+  [-0.12, 1.0],
+]
+const REAR_GLASS: [Point, Point] = [
+  [0.72, 1.0],
+  [1.22, 0.66],
+]
+const TOP_LINE: Point[] = [...NOSE, ...WINDSHIELD, ...REAR_GLASS, [1.52, 0.6], [1.56, 0.24]]
+
+/**
+ * Extrudes a side profile (z, y) across the car's width, centred on x = 0.
+ * `bevel` grows the outline (rounded edges); `edge` is how far that rounding eats into the width.
+ */
+function extrudeProfile(points: Point[], width: number, { bevel = 0, edge = 0, arches = false } = {}) {
+  const shape = new Shape()
+  shape.moveTo(...points[0])
+  points.slice(1).forEach(([z, y]) => shape.lineTo(z, y))
+  if (arches) {
+    // Cut a wheel arch over each axle, walking the underside from rear to front.
+    for (const axle of [WHEELS[2][2], WHEELS[0][2]]) {
+      shape.lineTo(axle + WHEEL_ARCH, -0.02)
+      shape.absarc(axle, WHEELS[0][1], WHEEL_ARCH, 0, Math.PI, false)
+      shape.lineTo(axle - WHEEL_ARCH, -0.02)
+    }
+  }
+  shape.closePath()
+  const depth = width - edge * 2
+  const geometry = new ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: bevel > 0,
+    bevelThickness: edge,
+    bevelSize: bevel,
+    bevelSegments: 2,
+    curveSegments: 10,
+  })
+  geometry.translate(0, 0, -depth / 2)
+  geometry.rotateY(-Math.PI / 2)
+  return geometry
+}
+
+/** Where to put a flat panel lying on one slope of the profile, nudged out past the bevel. */
+function onSlope([z1, y1]: Point, [z2, y2]: Point, offset: number) {
+  // A box laid along the slope: local z follows the slope, local y points out of the paint.
+  const dz = z2 - z1
+  const dy = y2 - y1
+  const length = Math.hypot(dz, dy)
+  return {
+    position: [0, (y1 + y2) / 2 + (dz / length) * offset, (z1 + z2) / 2 - (dy / length) * offset] as const,
+    rotationX: Math.atan2(-dy, dz),
+    length,
+  }
+}
 const WHEELS: [number, number, number][] = [
   [-0.86, 0.02, -0.95],
   [0.86, 0.02, -0.95],
   [-0.86, 0.02, 0.95],
   [0.86, 0.02, 0.95],
 ]
+
+const BODY = extrudeProfile([[-1.5, -0.02], ...TOP_LINE, [1.5, -0.02]], BODY_WIDTH, {
+  bevel: BODY_BEVEL,
+  edge: 0.06,
+  arches: true,
+})
+
+// Twin stripes over the hood, roof and trunk, skipping the glass. Each piece is a band hanging
+// under a stretch of the top line, grown just proud of the paint so only its top shows.
+const STRIPE_RUNS: Point[][] = [
+  [NOSE[1], WINDSHIELD[0]],
+  [WINDSHIELD[1], REAR_GLASS[0]],
+  [REAR_GLASS[1], [1.52, 0.6]],
+]
+const STRIPES = STRIPE_RUNS.map((top) =>
+  extrudeProfile([...top, ...[...top].reverse().map(([z, y]): Point => [z, y - 0.12])], 0.15, {
+    bevel: BODY_BEVEL + 0.008,
+    edge: 0.004,
+  }),
+)
+
+// Side windows go straight through the body and show on both flanks, split by a B-pillar.
+const SIDE_GLASS = [
+  extrudeProfile(
+    [
+      [-0.4, 0.68],
+      [-0.12, 0.94],
+      [0.26, 0.94],
+      [0.26, 0.68],
+    ],
+    BODY_WIDTH + 0.02,
+  ),
+  extrudeProfile(
+    [
+      [0.36, 0.68],
+      [0.36, 0.94],
+      [0.74, 0.94],
+      [1.1, 0.68],
+    ],
+    BODY_WIDTH + 0.02,
+  ),
+]
+const SLOPED_GLASS = [onSlope(...WINDSHIELD, 0.07), onSlope(...REAR_GLASS, 0.07)]
+// A cylinder's axis is its local y, which onSlope turns to face straight out of the nose.
+const HEADLIGHT_TILT = onSlope(...NOSE, 0).rotationX
+
+// One material for both tail lights so braking lights them together.
+const TAIL_LIGHTS = new MeshStandardMaterial({ color: '#ff3b3b', emissive: '#ff2a2a', emissiveIntensity: 1.2 })
 
 const moveTowards = (value: number, target: number, step: number) =>
   Math.abs(target - value) <= step ? target : value + Math.sign(target - value) * step
@@ -34,7 +148,7 @@ export function Vehicle() {
   const body = useRef<RapierRigidBody>(null)
   const chassis = useRef<Group>(null)
   const wheels = useRef<(Group | null)[]>([])
-  const tailLights = useRef<MeshStandardMaterial>(null)
+  const flag = useRef<Group>(null)
   const wheelSpin = useRef(0)
   const steerAngle = useRef(0)
   const resetHeld = useRef(false)
@@ -66,7 +180,7 @@ export function Vehicle() {
     [place],
   )
 
-  useFrame((_, rawDelta) => {
+  useFrame((state, rawDelta) => {
     const b = body.current
     if (!b) return
     const delta = Math.min(rawDelta, 1 / 30)
@@ -130,8 +244,12 @@ export function Vehicle() {
       const pitch = (throttle * 0.03 - (braking ? 0.04 : 0)) * (grounded ? 1 : 0)
       chassis.current.rotation.x = MathUtils.damp(chassis.current.rotation.x, pitch, 6, delta)
     }
-    if (tailLights.current) {
-      tailLights.current.emissiveIntensity = braking || throttle < 0 ? 4 : 1.2
+    TAIL_LIGHTS.emissiveIntensity = braking || throttle < 0 ? 4 : 1.2
+    if (flag.current) {
+      // Flutters faster and streams further back the quicker the car goes.
+      const pace = MathUtils.clamp(Math.abs(speed) / MAX_FORWARD, 0, 1)
+      const time = state.clock.elapsedTime
+      flag.current.rotation.y = Math.sin(time * (4 + pace * 10)) * (0.15 + pace * 0.3) + pace * 0.5
     }
   })
 
@@ -152,62 +270,111 @@ export function Vehicle() {
       <CuboidCollider args={[0.85, 0.4, 1.45]} friction={0.3} density={2} />
 
       <group ref={chassis}>
-        {/* Body */}
-        <mesh castShadow position={[0, 0.12, 0]}>
-          <boxGeometry args={[1.7, 0.55, 2.9]} />
-          <meshStandardMaterial color={BODY_COLOR} flatShading roughness={0.5} />
+        {/* Body shell, with wheel arches cut into the profile */}
+        <mesh castShadow receiveShadow geometry={BODY}>
+          <meshStandardMaterial color={BODY_COLOR} flatShading roughness={0.45} />
         </mesh>
-        {/* Cabin glass + roof */}
-        <mesh castShadow position={[0, 0.6, 0.2]}>
-          <boxGeometry args={[1.42, 0.46, 1.45]} />
-          <meshStandardMaterial color="#1c2a3a" roughness={0.15} metalness={0.4} />
+        {/* Racing stripes over hood, roof and trunk */}
+        {[-0.15, 0.15].flatMap((x) =>
+          STRIPES.map((geometry, i) => (
+            <mesh key={`${x}-${i}`} geometry={geometry} position-x={x}>
+              <meshStandardMaterial color={STRIPE_COLOR} flatShading roughness={0.5} />
+            </mesh>
+          )),
+        )}
+        {/* Glass: side windows, windshield, rear window */}
+        {SIDE_GLASS.map((geometry, i) => (
+          <mesh key={i} geometry={geometry}>
+            <meshStandardMaterial color="#22344a" roughness={0.15} metalness={0.3} />
+          </mesh>
+        ))}
+        {SLOPED_GLASS.map(({ position, rotationX, length }, i) => (
+          <mesh key={i} position={position} rotation-x={rotationX}>
+            <boxGeometry args={[1.38, 0.015, length * 0.84]} />
+            <meshStandardMaterial color="#22344a" roughness={0.15} metalness={0.3} />
+          </mesh>
+        ))}
+        {/* Side skirts between the arches */}
+        <mesh position={[0, 0.03, 0]}>
+          <boxGeometry args={[BODY_WIDTH + 0.04, 0.12, 0.9]} />
+          <meshStandardMaterial color={TRIM_COLOR} flatShading />
         </mesh>
-        <mesh castShadow position={[0, 0.86, 0.2]}>
-          <boxGeometry args={[1.5, 0.08, 1.55]} />
-          <meshStandardMaterial color={BODY_COLOR} flatShading />
-        </mesh>
-        {/* Racing stripe */}
-        <mesh position={[0, 0.405, -0.7]}>
-          <boxGeometry args={[0.36, 0.02, 1.4]} />
-          <meshStandardMaterial color="#fff4e6" />
+        {/* Bumpers */}
+        {[-1.56, 1.56].map((z) => (
+          <mesh key={z} castShadow position={[0, 0.08, z]}>
+            <boxGeometry args={[1.62, 0.16, 0.16]} />
+            <meshStandardMaterial color={TRIM_COLOR} flatShading roughness={0.7} />
+          </mesh>
+        ))}
+        {/* Grille */}
+        <mesh position={[0, 0.3, -1.6]}>
+          <boxGeometry args={[0.62, 0.12, 0.04]} />
+          <meshStandardMaterial color={TRIM_COLOR} />
         </mesh>
         {/* Headlights */}
-        {[-0.55, 0.55].map((x) => (
-          <mesh key={x} position={[x, 0.18, -1.46]}>
-            <boxGeometry args={[0.36, 0.16, 0.04]} />
+        {[-0.54, 0.54].map((x) => (
+          <mesh key={x} position={[x, 0.4, -1.55]} rotation-x={HEADLIGHT_TILT}>
+            <cylinderGeometry args={[0.13, 0.13, 0.06, 14]} />
             <meshStandardMaterial color="#fff6d5" emissive="#fff1c1" emissiveIntensity={3} />
           </mesh>
         ))}
         {/* Tail lights */}
-        <mesh position={[0, 0.2, 1.46]}>
-          <boxGeometry args={[1.3, 0.12, 0.04]} />
-          <meshStandardMaterial ref={tailLights} color="#ff3b3b" emissive="#ff2a2a" emissiveIntensity={1.2} />
-        </mesh>
+        {[-0.55, 0.55].map((x) => (
+          <mesh key={x} position={[x, 0.44, 1.6]} material={TAIL_LIGHTS}>
+            <boxGeometry args={[0.38, 0.13, 0.04]} />
+          </mesh>
+        ))}
         {/* Plate */}
+        <mesh position={[0, 0.28, 1.61]}>
+          <boxGeometry args={[0.58, 0.17, 0.03]} />
+          <meshStandardMaterial color={STRIPE_COLOR} />
+        </mesh>
         <Text
           font={FONT_BOLD}
-          position={[0, -0.02, 1.47]}
-          fontSize={0.16}
-          color="#1c2a3a"
+          position={[0, 0.28, 1.63]}
+          fontSize={0.11}
+          color={TRIM_COLOR}
           anchorX="center"
           anchorY="middle"
         >
           PK · 2017
         </Text>
-        {/* Spoiler */}
-        <mesh castShadow position={[0, 0.62, 1.3]}>
-          <boxGeometry args={[1.6, 0.06, 0.34]} />
-          <meshStandardMaterial color="#1c2a3a" />
+        {/* Exhausts */}
+        {[-0.42, 0.42].map((x) => (
+          <mesh key={x} position={[x, -0.02, 1.62]} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.06, 0.06, 0.14, 10]} />
+            <meshStandardMaterial color="#9aa3b2" metalness={0.5} roughness={0.35} />
+          </mesh>
+        ))}
+        {/* Spoiler on two struts */}
+        <mesh castShadow position={[0, 0.8, 1.4]}>
+          <boxGeometry args={[1.5, 0.04, 0.24]} />
+          <meshStandardMaterial color={TRIM_COLOR} flatShading />
         </mesh>
+        {[-0.5, 0.5].map((x) => (
+          <mesh key={x} position={[x, 0.72, 1.4]}>
+            <boxGeometry args={[0.05, 0.14, 0.08]} />
+            <meshStandardMaterial color={TRIM_COLOR} />
+          </mesh>
+        ))}
+        {/* Wing mirrors */}
+        {[-1, 1].map((side) => (
+          <mesh key={side} castShadow position={[side * 0.9, 0.72, -0.42]}>
+            <boxGeometry args={[0.16, 0.11, 0.08]} />
+            <meshStandardMaterial color={BODY_COLOR} flatShading />
+          </mesh>
+        ))}
         {/* Antenna flag */}
-        <mesh position={[0.55, 1.2, 0.8]}>
+        <mesh position={[0.55, 1.4, 0.62]}>
           <cylinderGeometry args={[0.015, 0.015, 0.7]} />
           <meshStandardMaterial color="#333" />
         </mesh>
-        <mesh position={[0.72, 1.45, 0.8]}>
-          <boxGeometry args={[0.32, 0.2, 0.02]} />
-          <meshStandardMaterial color="#ffd166" emissive="#ffd166" emissiveIntensity={0.6} />
-        </mesh>
+        <group ref={flag} position={[0.55, 1.65, 0.62]}>
+          <mesh position-x={0.17}>
+            <boxGeometry args={[0.32, 0.2, 0.02]} />
+            <meshStandardMaterial color="#ffd166" emissive="#ffd166" emissiveIntensity={0.6} />
+          </mesh>
+        </group>
       </group>
 
       {WHEELS.map((p, i) => (
@@ -218,13 +385,24 @@ export function Vehicle() {
             wheels.current[i] = el
           }}
         >
+          {/* Tyre, dark rim, three crossed spokes and a body-coloured hub cap */}
           <mesh castShadow rotation-z={Math.PI / 2}>
-            <cylinderGeometry args={[WHEEL_RADIUS, WHEEL_RADIUS, 0.34, 10]} />
-            <meshStandardMaterial color="#1d1d22" flatShading />
+            <cylinderGeometry args={[WHEEL_RADIUS, WHEEL_RADIUS, 0.34, 16]} />
+            <meshStandardMaterial color="#1d1d22" flatShading roughness={0.9} />
           </mesh>
-          <mesh rotation-z={Math.PI / 2} position-x={p[0] > 0 ? 0.18 : -0.18}>
-            <cylinderGeometry args={[0.18, 0.18, 0.02, 8]} />
-            <meshStandardMaterial color="#d8dde6" metalness={0.6} roughness={0.3} />
+          <mesh rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.25, 0.25, 0.36, 12]} />
+            <meshStandardMaterial color="#3a3f4b" flatShading />
+          </mesh>
+          {[0, 1, 2].map((k) => (
+            <mesh key={k} rotation-x={(k * Math.PI) / 3}>
+              <boxGeometry args={[0.37, 0.44, 0.06]} />
+              <meshStandardMaterial color="#d8dde6" metalness={0.4} roughness={0.35} />
+            </mesh>
+          ))}
+          <mesh rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.08, 0.08, 0.39, 8]} />
+            <meshStandardMaterial color={BODY_COLOR} />
           </mesh>
         </group>
       ))}

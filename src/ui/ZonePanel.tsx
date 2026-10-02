@@ -1,6 +1,8 @@
 import type { CSSProperties, ComponentType } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ZONES } from '../data/zones'
+import { panelRect } from '../game/refs'
+import { useCompactLayout } from '../hooks/useCapability'
 import type { ZoneId } from '../data/types'
 import { useGame, usePanelZone } from '../store/useGame'
 import {
@@ -21,12 +23,38 @@ const CONTENT: Record<ZoneId, { title: string; body: ComponentType }> = {
   contact: { title: 'Get in touch', body: ContactContent },
 }
 
+/** Publishes where the panel sits on screen so the camera can frame the scene beside it. */
+function trackRect(node: HTMLElement | null) {
+  if (!node) return
+  // offset* ignores the slide-in transform, so the rect is where the panel settles.
+  const measure = () =>
+    Object.assign(panelRect, {
+      left: node.offsetLeft,
+      top: node.offsetTop,
+      right: node.offsetLeft + node.offsetWidth,
+      bottom: node.offsetTop + node.offsetHeight,
+    })
+  const observer = new ResizeObserver(measure)
+  observer.observe(node)
+  window.addEventListener('resize', measure)
+  return () => {
+    observer.disconnect()
+    window.removeEventListener('resize', measure)
+    Object.assign(panelRect, { left: 0, top: 0, right: 0, bottom: 0 })
+  }
+}
+
 /** HTML panel with the CV content for whichever zone is active; slides in over the 3D scene. */
 export function ZonePanel() {
   const zoneId = usePanelZone()
   const open = useGame((s) => s.panelOpen)
   const playing = useGame((s) => s.phase === 'playing')
+  const expanded = useGame((s) => s.panelExpanded)
   const setPanelOpen = useGame((s) => s.setPanelOpen)
+  const setPanelExpanded = useGame((s) => s.setPanelExpanded)
+  // Phones get a slim header that expands on tap, so the panel doesn't hide the road.
+  const compact = useCompactLayout()
+  const showBody = !compact || expanded
 
   if (!playing) return null
   const zone = zoneId ? ZONES[zoneId] : null
@@ -38,7 +66,8 @@ export function ZonePanel() {
         {zone && content && open && (
           <motion.aside
             key={zone.id}
-            className="panel"
+            ref={trackRect}
+            className={showBody ? 'panel' : 'panel panel--collapsed'}
             style={{ '--zone': zone.color } as CSSProperties}
             aria-labelledby="panel-title"
             aria-live="polite"
@@ -51,14 +80,32 @@ export function ZonePanel() {
               <p className="kicker">
                 Zone {zone.number} · {zone.label}
               </p>
-              <h2 id="panel-title">{content.title}</h2>
+              <h2 id="panel-title">
+                {compact ? (
+                  <button
+                    className="panel__toggle"
+                    aria-expanded={expanded}
+                    aria-controls="panel-body"
+                    onClick={() => setPanelExpanded(!expanded)}
+                  >
+                    {content.title}
+                    <span className="panel__chevron" aria-hidden>
+                      ▾
+                    </span>
+                  </button>
+                ) : (
+                  content.title
+                )}
+              </h2>
               <button className="panel__close" aria-label="Close panel (Esc)" onClick={() => setPanelOpen(false)}>
                 ×
               </button>
             </header>
-            <div className="panel__body">
-              <content.body />
-            </div>
+            {showBody && (
+              <div className="panel__body" id="panel-body">
+                <content.body />
+              </div>
+            )}
           </motion.aside>
         )}
       </AnimatePresence>

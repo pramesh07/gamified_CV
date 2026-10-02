@@ -22,6 +22,8 @@ interface GameState {
   projectIndex: number
   discovered: ZoneId[]
   panelOpen: boolean
+  /** On phones the panel starts as a slim header; the player expands it to read. */
+  panelExpanded: boolean
   toast: Toast | null
   /** Bumped to ask the car to teleport; read by the Vehicle. */
   travel: { zone: ZoneId; nonce: number } | null
@@ -41,6 +43,7 @@ interface GameState {
   selectProject: (index: number) => void
   travelTo: (zone: ZoneId) => void
   setPanelOpen: (open: boolean) => void
+  setPanelExpanded: (expanded: boolean) => void
   showToast: (text: string) => void
   restack: () => void
   setQuality: (quality: Quality) => void
@@ -65,6 +68,7 @@ export const useGame = create<GameState>()((set, get) => ({
   projectIndex: 0,
   discovered: [],
   panelOpen: false,
+  panelExpanded: false,
   toast: null,
   travel: null,
   restackNonce: 0,
@@ -82,6 +86,7 @@ export const useGame = create<GameState>()((set, get) => ({
         mode: 'drive',
         activeZone: 'spawn',
         panelOpen: true,
+        panelExpanded: false,
         discovered: withDiscovered(s.discovered, 'spawn'),
       }))
       syncHash('drive')
@@ -100,7 +105,7 @@ export const useGame = create<GameState>()((set, get) => ({
   takeWheel: () => {
     const stop = TOUR_STOPS[get().tourIndex]
     // Set the zone directly: if the car is already parked inside it, no sensor event will fire.
-    set({ mode: 'drive', activeZone: stop.zone, panelOpen: false })
+    set({ mode: 'drive', activeZone: stop.zone, panelOpen: false, panelExpanded: false })
     syncHash('drive')
     get().travelTo(stop.zone)
   },
@@ -121,7 +126,12 @@ export const useGame = create<GameState>()((set, get) => ({
   enterZone: (zone) => {
     const { phase, mode, discovered } = get()
     if (phase !== 'playing' || mode !== 'drive') return
-    set((s) => ({ activeZone: zone, panelOpen: true, discovered: withDiscovered(s.discovered, zone) }))
+    set((s) => ({
+      activeZone: zone,
+      panelOpen: true,
+      panelExpanded: false,
+      discovered: withDiscovered(s.discovered, zone),
+    }))
     if (!discovered.includes(zone)) get().showToast(`Zone discovered: ${ZONES[zone].label}`)
   },
 
@@ -145,6 +155,8 @@ export const useGame = create<GameState>()((set, get) => ({
   },
 
   setPanelOpen: (open) => set({ panelOpen: open }),
+
+  setPanelExpanded: (expanded) => set({ panelExpanded: expanded }),
 
   showToast: (text) => set({ toast: { id: ++toastId, text } }),
 

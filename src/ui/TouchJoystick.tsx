@@ -3,7 +3,7 @@ import { useCoarsePointer } from '../hooks/useCapability'
 import { joystick } from '../store/input'
 import { useGame } from '../store/useGame'
 
-const RADIUS = 56
+const RADIUS = 48
 
 /** Dependency-free virtual joystick for touch screens: up/down = throttle, left/right = steer. */
 export function TouchJoystick() {
@@ -50,6 +50,8 @@ export function TouchJoystick() {
       aria-label="Drive joystick"
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
+        // Driving off folds the zone panel back down so the road stays visible.
+        useGame.getState().setPanelExpanded(false)
         update(e)
       }}
       onPointerMove={(e) => {

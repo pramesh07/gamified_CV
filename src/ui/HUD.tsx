@@ -30,8 +30,14 @@ function TravelMenu() {
 
   return (
     <div className="travel" ref={menu}>
-      <button className="hud-btn" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)}>
-        <span aria-hidden>◎</span> Travel
+      <button
+        className="hud-btn"
+        aria-label="Travel"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span aria-hidden>◎</span> <span className="hide-sm">Travel</span>
       </button>
       <AnimatePresence>
         {open && (
@@ -143,7 +149,14 @@ export function HUD() {
             else s.startTour()
           }}
         >
-          {mode === 'tour' ? 'Drive' : 'Guided tour'}
+          {mode === 'tour' ? (
+            'Drive'
+          ) : (
+            <>
+              <span className="hide-sm">Guided tour</span>
+              <span className="show-sm">Tour</span>
+            </>
+          )}
         </button>
         <a className="hud-btn" href={profile.resumePdf} download>
           CV <span className="hide-sm">(PDF)</span>

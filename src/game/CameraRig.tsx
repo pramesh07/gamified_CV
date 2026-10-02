@@ -4,7 +4,7 @@ import { easing } from 'maath'
 import { MathUtils, Vector3, type PerspectiveCamera } from 'three'
 import { arcadeCamera, TOUR_STOPS } from '../data/zones'
 import { useGame } from '../store/useGame'
-import { car, focus } from './refs'
+import { car, focus, panelRect } from './refs'
 
 const INTRO_SECONDS = 2.4
 
@@ -71,12 +71,17 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
     camera.lookAt(focus)
 
     // Keep the subject centred in the part of the screen the zone panel doesn't cover:
-    // the panel sits on the right on desktop and across the top on phones.
+    // the panel docks on the right on wide screens and across the top on phones.
     const { width, height } = state.size
     const panelVisible = panelOpen && (mode === 'tour' || activeZone !== null)
-    const wide = width > 760
-    const targetX = panelVisible && wide ? Math.min(430, width) / 2 : 0
-    const targetY = panelVisible && !wide ? -height * 0.06 : 0
+    let targetX = 0
+    let targetY = 0
+    if (panelVisible && panelRect.bottom > 0) {
+      const dockedRight = panelRect.left > width * 0.3
+      // A collapsed header barely covers anything, so only a tall panel pushes the view aside.
+      if (dockedRight && panelRect.bottom - panelRect.top > height * 0.5) targetX = (width - panelRect.left) / 2
+      if (!dockedRight) targetY = -Math.min(Math.max(0, panelRect.bottom - height * 0.3) / 2, height * 0.2)
+    }
     viewOffset.current.x = MathUtils.damp(viewOffset.current.x, targetX, 4, delta)
     viewOffset.current.y = MathUtils.damp(viewOffset.current.y, targetY, 4, delta)
     const { x, y } = viewOffset.current

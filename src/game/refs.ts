@@ -14,6 +14,9 @@ export const car = {
 /** World point the camera is looking at; the sun's shadow frustum follows it. */
 export const focus = new Vector3()
 
+/** Screen area the zone panel covers, measured by the panel itself; the camera frames the scene around it. */
+export const panelRect = { left: 0, top: 0, right: 0, bottom: 0 }
+
 export const isCar = (body?: RapierRigidBody) => !!body && !!car.body && body.handle === car.body.handle
 
 // troika-three-text loads fonts from a worker, so it needs absolute URLs.
